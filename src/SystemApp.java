@@ -1,6 +1,15 @@
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
+import java.util.stream.Collectors;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.io.BufferedWriter;
 
 public class SystemApp {
     public static void main(String[] args) {
@@ -9,7 +18,7 @@ public class SystemApp {
             market.updatePrices();
             market.showPrices();
 
-            User user = new User("Scrooge McDuck", "scrooge@ducktales.com", "vault123");
+            User user = new User("Scrooge McDuck", 1, "scrooge@ducktales.com", "vault123");
             user.showInfo();
 
             Wallet wallet = new Wallet();
@@ -22,8 +31,8 @@ public class SystemApp {
             transactions.add(new Transaction(btc, 2.0, "BUY"));
             transactions.add(new Transaction(eth, 5.0, "BUY"));
 
-            Company duckCorp = new Company("DuckCorp", "CNPJ-001");
-            Company treasureInc = new Company("TreasureInc", "CNPJ-002");
+            Company duckCorp = new Company("DuckCorp", 1, "CNPJ-001");
+            Company treasureInc = new Company("TreasureInc", 2, "CNPJ-002");
 
             duckCorp.allocateAsset(btc);
             treasureInc.allocateAsset(eth, 1.0); // sobrecarga
@@ -50,12 +59,50 @@ public class SystemApp {
             System.out.println("\n=== TESTE ARRAYLIST USANDO USER E COMPANY ===");
 
             List<User> userList = new ArrayList<>();
-            userList.add(new User("Donald Duck", "donald@ducktales.com", "quackquack"));
-            userList.add(new User("Daisy Duck", "daisy@ducktales.com", "flower123"));
+            userList.add(new User("Donald Duck", 3, "donald@ducktales.com", "quackquack"));
+            userList.add(new User("Daisy Duck", 4, "daisy@ducktales.com", "flower123"));
 
             List<Company> companyList = new ArrayList<>();
-            companyList.add(new Company("Duck Enterprises", "CNPJ-010"));
-            companyList.add(new Company("Duck Investments", "CNPJ-011"));
+            companyList.add(new Company("Duck Enterprises", 1, "CNPJ-010"));
+            companyList.add(new Company("Duck Investments", 2, "CNPJ-011"));
+          
+            Map<User,List<Company>> userCompanies = new HashMap<>();
+            userCompanies.put(userList.get(0), companyList);
+            userCompanies.put(userList.get(1), Collections.singletonList(companyList.get(1)));
+
+            System.out.println("\n=== TESTE HASHMAP USANDO USER E COMPANY ===");
+            for (var e : userCompanies.entrySet()) {
+              System.out.printf("%s -> %s%n", 
+                  e.getKey().getName(),
+                  e.getValue().stream()
+                    .map(Company::getName)
+                    .collect(Collectors.joining(", "))
+              );
+            }
+
+            Path file = Paths.get("data.txt");
+            try (BufferedWriter w = Files.newBufferedWriter(file)) {
+              for (User u : userList) {
+                w.write(String.join(";", "USER", String.valueOf(u.getId()), u.getEmail(), u.getName()));
+                w.newLine();
+              }
+
+              for (Map.Entry<User,List<Company>> e : userCompanies.entrySet()) {
+                for (Company c : e.getValue()) {
+                  w.write(String.join(";", "REL", String.valueOf(e.getKey().getId()), String.valueOf(c.getId())));
+                  w.newLine();
+                }
+              }
+            }
+
+            List<String> lines = Files.readAllLines(file);
+
+            lines.add("USER;5;Carol;carol@ducktales.com");
+            Files.write(
+                file,
+                lines,
+                StandardOpenOption.TRUNCATE_EXISTING
+            );
 
             // Mostrar usuários
             System.out.println("-- Lista de Usuários --");

@@ -2,13 +2,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Company extends Entity {
+    private int id;    
     private String identifier;
     private List<CryptoAsset> allocatedAssets;
 
-    public Company(String name, String identifier) {
+    public Company(String name, int id, String identifier) {
         super(name);
+        this.id = id;
         this.identifier = identifier;
         this.allocatedAssets = new ArrayList<>();
+    }
+
+    public int getId() {
+      return id;
     }
 
     public void allocateAsset(CryptoAsset asset) {

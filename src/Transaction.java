@@ -13,6 +13,10 @@ public class Transaction {
         this.timestamp = LocalDateTime.now();
     }
 
+    public void showTransaction() {
+        System.out.println("[" + timestamp + "] " + type + " " + amount + " of " + asset.getSymbol());
+    }
+
     public CryptoAsset getAsset() {
         return asset;
     }
@@ -27,9 +31,5 @@ public class Transaction {
 
     public LocalDateTime getTimestamp() {
         return timestamp;
-    }
-
-    public void showTransaction() {
-        System.out.println("[" + timestamp + "] " + type + " " + amount + " of " + asset.getSymbol());
     }
 }

@@ -1,6 +1,4 @@
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class Market {
     private Map<String, Double> prices;
@@ -19,7 +17,6 @@ public class Market {
 
     public void updatePrices() {
         Random rand = new Random();
-
         for (String symbol : prices.keySet()) {
             double variation = (rand.nextDouble() * 2 - 1) * 0.05;
             double currentPrice = prices.get(symbol);

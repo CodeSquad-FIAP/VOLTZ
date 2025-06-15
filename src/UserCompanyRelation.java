@@ -13,6 +13,11 @@ public class UserCompanyRelation {
     this.startDate = startDate;
   }
 
+  public void showRelation() {
+    System.out.println("User: " + user.getName() + " | Company: " + company.getName() +
+            " | Invested: $" + investedAmount + " | Since: " + startDate);
+  }
+
   public User getUser() {
     return user;
   }
@@ -35,9 +40,5 @@ public class UserCompanyRelation {
 
   public void setStartDate(LocalDate startDate) {
     this.startDate = startDate;
-  }
-
-  public void showRelation() {
-    System.out.println("User: " + user.getName() + " | Company: " + company.getName() + " | Invested: $" + investedAmount + " | Since: " + startDate);
   }
 }

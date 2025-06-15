@@ -25,5 +25,4 @@ public class Wallet {
     public List<CryptoAsset> getAssets() {
         return assets;
     }
-
 }

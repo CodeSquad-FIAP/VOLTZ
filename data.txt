@@ -1,0 +1,8 @@
+USER;1;scrooge@ducktales.com;Scrooge McDuck
+USER;3;donald@ducktales.com;Donald Duck
+USER;4;daisy@ducktales.com;Daisy Duck
+USER;5;carol@ducktales.com;Carol
+REL;4;4
+REL;3;3
+REL;3;4
+USER;5;Carol;carol@ducktales.com

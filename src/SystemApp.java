@@ -3,6 +3,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.nio.file.*;
 import java.io.BufferedWriter;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.ResultSet;
 
 public class SystemApp {
     public static void main(String[] args) {
@@ -106,9 +110,56 @@ public class SystemApp {
 
             System.out.println("\n=== FIM DO TESTE ARRAYLIST ===");
 
+
+
         } catch (Exception e) {
             System.err.println("❌ Ocorreu um erro ao executar o sistema: " + e.getMessage());
             e.printStackTrace();
         }
+
+        System.out.println("\n=== TESTE DE CONEXÃO COM ORACLE ===");
+
+        try {
+            // 1. Testar conexão
+            System.out.println("1. Testando conexão...");
+            Connection conn = OracleConnection.getConnection();
+
+            if (conn != null && !conn.isClosed()) {
+                System.out.println("Conexão estabelecida com sucesso!");
+                System.out.println("URL: " + conn.getMetaData().getURL());
+                System.out.println("Usuario: " + conn.getMetaData().getUserName());
+                System.out.println();
+
+                // 2. Testar execução de comando simples
+                System.out.println("2. Testando execução de comando SQL...");
+                Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery("SELECT SYSDATE FROM DUAL");
+
+                if (rs.next()) {
+                    System.out.println("Data/Hora do servidor Oracle: " + rs.getTimestamp(1));
+                }
+
+                rs.close();
+                stmt.close();
+                System.out.println("Comando SQL executado com sucesso!");
+
+                // 3. Testar fechamento
+                System.out.println("\n3. Testando fechamento de conexão...");
+                OracleConnection.closeConnection();
+                System.out.println("Teste de conexão finalizado!");
+
+            } else {
+                System.out.println("Falha na conexão!");
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Erro SQL: " + e.getMessage());
+            System.err.println("Verifique: conexão de rede, credenciais e VPN da FIAP");
+        } catch (Exception e) {
+            System.err.println("Erro: " + e.getMessage());
+        }
+
+        System.out.println("=== FIM DO TESTE DE CONEXÃO ===");
+
     }
 }

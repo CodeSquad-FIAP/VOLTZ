@@ -169,6 +169,45 @@ public class SystemApp {
         }
 
         System.out.println("=== FIM DO TESTE DE CONEXÃO ===");
+        System.out.println("=== TESTE DE FUNCIONALIDADES DO USUÁRIO ===");
+
+        // Testar inserção
+        testInsertUser();
+
+        // Testar atualização
+        testUpdateUser();
+
+        // Testar exclusão
+        testDeleteUser();
+
+        // Testar exibição de todos os usuários
+        testDisplayAllUsers();
+
+        // Fechar conexão Oracle ao final
+        OracleConnection.closeConnection();
+    }
+
+    private static void testInsertUser() {
+        System.out.println("\n--- Inserindo usuário ---");
+        User newUser = new User("Test User", 10, "testuser@voltz.com", "password123");
+        newUser.insert();
+    }
+
+    private static void testUpdateUser() {
+        System.out.println("\n--- Atualizando usuário ---");
+        User existingUser = new User("Updated User", 10, "updated@voltz.com", "newpassword");
+        existingUser.update();
+    }
+
+    private static void testDeleteUser() {
+        System.out.println("\n--- Excluindo usuário ---");
+        User userToDelete = new User("", 10, "", ""); // apenas id é necessário
+        userToDelete.delete();
+    }
+
+    private static void testDisplayAllUsers() {
+        System.out.println("\n--- Exibindo todos os usuários ---");
+        User.displayAllUsers();
 
     }
 }

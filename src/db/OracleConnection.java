@@ -3,41 +3,32 @@ package db;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import io.github.cdimascio.dotenv.Dotenv;
 
 public class OracleConnection {
 
-    private static final String URL = "jdbc:oracle:thin:@oracle.fiap.com.br:1521:ORCL";
-    private static final String USER = "rm557413";
-    private static final String PASS = "110805";
+    private static final String URL = System.getenv("DB_URL");
+    private static final String USER = System.getenv("DB_USER");
+    private static final String PASS = System.getenv("DB_PASS");
 
     private static Connection connection;
 
-    // Construtor privado para evitar instância
     private OracleConnection() {
     }
 
-    // Retorna a conexão única (singleton)
     public static synchronized Connection getConnection() throws SQLException {
         try {
             if (connection == null || connection.isClosed()) {
-                // Carrega o driver Oracle (não estritamente necessário em versões modernas)
                 Class.forName("oracle.jdbc.driver.OracleDriver");
-
-                // Cria a conexão
                 connection = DriverManager.getConnection(URL, USER, PASS);
                 System.out.println("✅ Conexão Oracle estabelecida com sucesso!");
             }
         } catch (ClassNotFoundException e) {
-            System.err.println("❌ Driver Oracle não encontrado: " + e.getMessage());
-            throw new SQLException(e);
-        } catch (SQLException e) {
-            System.err.println("❌ Erro ao conectar no Oracle: " + e.getMessage());
-            throw e;
+            throw new SQLException("❌ Driver Oracle não encontrado", e);
         }
         return connection;
     }
 
-    // Método para fechar a conexão manualmente
     public static synchronized void closeConnection() {
         if (connection != null) {
             try {

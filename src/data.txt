@@ -1,6 +1,0 @@
-USER;3;donald@ducktales.com;Donald Duck
-USER;4;daisy@ducktales.com;Daisy Duck
-REL;4;2
-REL;3;1
-REL;3;2
-USER;3;Carol;carol@ducktales.com

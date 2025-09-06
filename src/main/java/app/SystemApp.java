@@ -17,7 +17,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class SystemApp {
+public class    SystemApp {
     public static void main(String[] args) {
         try {
             Market market = new Market();
@@ -166,46 +166,72 @@ public class SystemApp {
             System.err.println("Erro: " + e.getMessage());
         }
 
+
         System.out.println("=== FIM DO TESTE DE CONEXÃO ===");
-        System.out.println("=== TESTE DE FUNCIONALIDADES DO USUÁRIO ===");
 
-        // Testar inserção
-        testInsertUser();
 
-        // Testar atualização
-        testUpdateUser();
 
-        // Testar exclusão
-        testDeleteUser();
 
-        // Testar exibição de todos os usuários
+        // Bloco de teste de CRUD
+        System.out.println("\n=== INICIANDO TESTE COMPLETO DE CRUD DE USUÁRIO ===");
+
+        // 1. VER ESTADO INICIAL
+        System.out.println("\n--- Etapa 1: Listando usuários ANTES da inserção ---");
         testDisplayAllUsers();
 
-        // Fechar conexão Oracle ao final
+        // 2. CRIAR
+        User usuarioDeTeste = new User("Usuário Teste", 999, "teste999@voltz.com", "senha123");
+        System.out.println("\n--- Etapa 2: Inserindo o '" + usuarioDeTeste.getName() + "' ---");
+        testInsertUser(usuarioDeTeste);
+
+        // 3. VERIFICAR A CRIAÇÃO
+        System.out.println("\n--- Etapa 3: Verificando se o usuário foi inserido ---");
+        testDisplayAllUsers();
+
+        // 4. ATUALIZAR
+        usuarioDeTeste.setName("Usuário Teste (Atualizado)");
+        usuarioDeTeste.setEmail("usuario.teste@voltz.com");
+        System.out.println("\n--- Etapa 4: Atualizando para '" + usuarioDeTeste.getName() + "' ---");
+        testUpdateUser(usuarioDeTeste);
+
+        // 5. VERIFICAR A ATUALIZAÇÃO
+        System.out.println("\n--- Etapa 5: Verificando se o usuário foi atualizado ---");
+        testDisplayAllUsers();
+
+        // 6. DELETAR
+        System.out.println("\n--- Etapa 6: Excluindo o usuário de teste ---");
+        testDeleteUser(usuarioDeTeste);
+
+        // 7. VERIFICAR A EXCLUSÃO
+        System.out.println("\n--- Etapa 7: Verificando se o usuário foi excluído ---");
+        testDisplayAllUsers();
+
+        System.out.println("\n=== FIM DO TESTE DE CRUD ===");
+
         OracleConnection.closeConnection();
+        System.out.println("Programa finalizado e conexão com o Oracle devidamente fechada.");
+
     }
 
-    private static void testInsertUser() {
-        System.out.println("\n--- Inserindo usuário ---");
-        User newUser = new User("Test User", 10, "testuser@voltz.com", "password123");
-        newUser.insert();
+    // ================== MÉTODOS DE TESTE ==================
+
+    private static void testInsertUser(User user) {
+        System.out.println("Tentando inserir: " + user.getName());
+        user.insert();
     }
 
-    private static void testUpdateUser() {
-        System.out.println("\n--- Atualizando usuário ---");
-        User existingUser = new User("Updated User", 10, "updated@voltz.com", "newpassword");
-        existingUser.update();
+    private static void testUpdateUser(User user) {
+        System.out.println("Tentando atualizar para: " + user.getName());
+        user.update();
     }
 
-    private static void testDeleteUser() {
-        System.out.println("\n--- Excluindo usuário ---");
-        User userToDelete = new User("", 10, "", ""); // apenas id é necessário
-        userToDelete.delete();
+    private static void testDeleteUser(User user) {
+        System.out.println("Tentando excluir usuário com ID: " + user.getId());
+        user.delete();
     }
 
     private static void testDisplayAllUsers() {
-        System.out.println("\n--- Exibindo todos os usuários ---");
+        System.out.println("--- Exibindo todos os usuários no banco ---");
         User.displayAllUsers();
-
     }
 }

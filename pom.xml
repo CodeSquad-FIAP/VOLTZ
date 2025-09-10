@@ -38,7 +38,7 @@
             <version>3.0.0</version>
         </dependency>
 
-        <!-- JUnit 5 para testes (opcional, mas recomendado) -->
+        <!-- JUnit 5 para testes -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
@@ -56,9 +56,6 @@
 
     <!-- Configuração de build -->
     <build>
-        <!-- Configuração correta dos diretórios source -->
-        <sourceDirectory>src</sourceDirectory>
-
         <plugins>
             <!-- Plugin do compilador Maven -->
             <plugin>

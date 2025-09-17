@@ -1,5 +1,6 @@
-package db;
+package dao;
 
+import db.OracleConnection;
 import model.Company;
 import java.sql.*;
 import java.util.ArrayList;

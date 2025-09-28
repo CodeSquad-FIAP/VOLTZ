@@ -1,5 +1,9 @@
 package app;
 
+import dao.*;
+import model.CryptoAsset;
+import model.Transaction;
+
 import db.OracleConnection;
 import model.*;
 import report.Report;
@@ -19,6 +23,24 @@ import java.util.stream.Collectors;
 
 public class SystemApp {
     public static void main(String[] args) {
+      
+        // Pre-requisitos: Garanta que tenha dados no banco de dados.
+        // Para rodar esse teste, vamos assumir que:
+        // - Usuário com o ID 1 existe
+        // - Companhia com ID 1 existe
+        // - CryptoAsset com ID 1 (ex: Bitcoin) existe
+        final int TEST_USER_ID = 1;
+        final int TEST_COMPANY_ID = 1;
+        final int TEST_CRYPTO_ASSET_ID = 1;
+
+        // == Testando Issue #4: MarketDAO e TransactionDAO ==
+        testMarketDAO();
+        testTransactionDAO(TEST_USER_ID, TEST_CRYPTO_ASSET_ID);
+
+        // == Testando Issue #5: Relation DAOs ==
+        testUserCompanyRelationDAO(TEST_USER_ID, TEST_COMPANY_ID);
+        testCompanyCryptoAssetDAO(TEST_COMPANY_ID, TEST_CRYPTO_ASSET_ID);
+
         try {
             // Inicializando o mercado
             Market market = new Market();
@@ -144,6 +166,85 @@ public class SystemApp {
         // Fechamento da conexão
         OracleConnection.closeConnection();
         System.out.println("Programa finalizado e conexão com o Oracle devidamente fechada.");
+    }
+
+    private static void testMarketDAO() {
+        System.out.println("\n--- Testando MarketDAO ---");
+        MarketDAO marketDAO = new MarketDAO();
+        
+        // 1. Salvar/Atualizar preço
+        marketDAO.save("BTC", 68500.50);
+        marketDAO.save("ETH", 3500.75);
+
+        // 2. Obter um único preço
+        Double btcPrice = marketDAO.getPrice("BTC");
+        System.out.println("Preço do BTC obtido: " + (btcPrice != null ? "$" + btcPrice : "Não encontrado"));
+
+        // 3. Obter todos os preços
+        Map<String, Double> allPrices = marketDAO.getAllPrices();
+        System.out.println("Todos os preços do mercado: " + allPrices);
+        
+        // 4. Deletar um preço
+        marketDAO.delete("ETH");
+        System.out.println("Preços de mercado após deletar o ETH: " + marketDAO.getAllPrices());
+    }
+
+    private static void testTransactionDAO(int userId, int cryptoAssetId) {
+        System.out.println("\n--- Testando TransactionDAO ---");
+        TransactionDAO transactionDAO = new TransactionDAO();
+        CryptoAssetDAO cryptoAssetDAO = new CryptoAssetDAO();
+
+        // Precisamos de um objeto CryptoAsse para o modelo de transações
+        CryptoAsset asset = cryptoAssetDAO.findById(cryptoAssetId);
+        if (asset == null) {
+            System.err.println("❌ Teste pulado: CryptoAsset com ID " + cryptoAssetId + " não encontrado.");
+            return;
+        }
+
+        // 1. Inserir uma transação
+        Transaction newTransaction = new Transaction(asset, 0.5, "BUY");
+        transactionDAO.insert(newTransaction, userId, cryptoAssetId);
+
+        // 2. Achar uma transação pelo usuário
+        System.out.println("Transactions for User ID " + userId + ":");
+        transactionDAO.findByUserId(userId).forEach(Transaction::showTransaction);
+    }
+
+    private static void testUserCompanyRelationDAO(int userId, int companyId) {
+        System.out.println("\n--- Testando UserCompanyRelationDAO ---");
+        UserCompanyRelationDAO relationDAO = new UserCompanyRelationDAO();
+
+        // 1. Inserir uma nova tabela
+        relationDAO.insert(userId, companyId, 5000.0, LocalDate.now());
+        
+        // 2. Atualizar um valor investido
+        relationDAO.updateInvestedAmount(userId, companyId, 7500.0);
+
+        // 3. Encontrar usuários pela companhia
+        System.out.println("Usuários investindo na Companhia ID " + companyId + ": " + relationDAO.findUsersByCompanyId(companyId));
+        
+        // 4. Deletar uma relação
+        relationDAO.delete(userId, companyId);
+        System.out.println("Usuários investindo pela Companhia ID " + companyId + " após a deleção: " + relationDAO.findUsersByCompanyId(companyId));
+    }
+
+    private static void testCompanyCryptoAssetDAO(int companyId, int cryptoAssetId) {
+        System.out.println("\n--- Testando CompanyCryptoAssetDAO ---");
+        CompanyCryptoAssetDAO ccaDAO = new CompanyCryptoAssetDAO();
+        
+        // 1. Adicionar/Atualizar um asset para a Companhia
+        System.out.println("Alocando 10 unidades de um asset " + cryptoAssetId + " para a Companhia " + companyId);
+        ccaDAO.addOrUpdateAssetForCompany(companyId, cryptoAssetId, 10.0);
+
+        // 2. Obter assets de uma Companhia
+        System.out.println("Assets sob custódia da Companhia ID " + companyId + ":");
+        ccaDAO.getAssetsByCompanyId(companyId).forEach(asset ->
+                System.out.println("- " + asset.getName() + ": " + asset.getQuantity())
+        );
+        
+        // 3. Remover um asset
+        ccaDAO.removeAssetFromCompany(companyId, cryptoAssetId);
+        System.out.println("Assets sob custódia da Companhia ID " + companyId + " depois da remoção: " + ccaDAO.getAssetsByCompanyId(companyId).size());
     }
 
     /**

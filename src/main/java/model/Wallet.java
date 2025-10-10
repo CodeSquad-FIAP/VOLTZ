@@ -9,10 +9,17 @@ public class Wallet {
     private String name;
     private List<CryptoAsset> assets = new ArrayList<>();
 
+    // Construtor padrão
+    public Wallet() {
+        this.assets = new ArrayList<>();
+    }
+
+    // Construtor com parâmetros
     public Wallet(int id, int userId, String name) {
         this.id = id;
         this.userId = userId;
         this.name = name;
+        this.assets = new ArrayList<>();
     }
 
     // Métodos de manipulação da lista
@@ -33,29 +40,23 @@ public class Wallet {
         return id;
     }
 
-    public int getUserId() {
-        return userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
     public void setId(int id) {
         this.id = id;
+    }
+
+    public int getUserId() {
+        return userId;
     }
 
     public void setUserId(int userId) {
         this.userId = userId;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public void setName(String name) {
         this.name = name;
-    }
-}
-
-
-    public List<CryptoAsset> getAssets() {
-        return assets;
     }
 }

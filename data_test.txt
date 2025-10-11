@@ -1,0 +1,31 @@
+# VOLTZ CRYPTO MANAGEMENT SYSTEM - DATA EXPORT
+# Generated: 2025-10-11
+
+## USERS
+USER|1|Scrooge McDuck|scrooge@ducktales.com
+USER|2|Donald Duck|donald.duck@newemail.com
+USER|3|Daisy Duck|daisy@ducktales.com
+USER|4|Carol|carol@ducktales.com
+USER|5|Usuario Auto ID|auto@voltz.com
+
+## COMPANIES
+COMPANY|1|DuckCorp|CNPJ-001
+COMPANY|2|TreasureInc|CNPJ-002
+COMPANY|3|Duck Enterprises|CNPJ-010
+COMPANY|4|Duck Investments|CNPJ-011
+COMPANY|5|TechStartup|TECH-001
+COMPANY|6|FinanceInc|FIN-002
+COMPANY|7|TechCorp Test|CNPJ-99999-TEST
+COMPANY|14|TechStartup|TECH-90001
+COMPANY|15|FinanceInc|FIN-90002
+
+## CRYPTO ASSETS
+ASSET|Bitcoin|BTC|2.0000|68000.00
+ASSET|Ethereum|ETH|5.0000|3200.00
+ASSET|Cardano|ADA|1000.0000|0.45
+ASSET|Solana|SOL|0.0000|150.00
+
+## MARKET PRICES
+PRICE|BTC|63000.00
+PRICE|SOL|150.00
+PRICE|ETH|3100.00

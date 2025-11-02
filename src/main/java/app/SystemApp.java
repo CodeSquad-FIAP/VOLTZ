@@ -773,9 +773,10 @@ public class SystemApp {
             System.out.println("CRUD - RELACIONAMENTOS USUÁRIO-EMPRESA");
             System.out.println("─".repeat(80));
             System.out.println("1. Listar usuários de uma empresa");
-            System.out.println("2. Criar novo relacionamento");
-            System.out.println("3. Atualizar valor investido");
-            System.out.println("4. Deletar relacionamento");
+            System.out.println("2. Buscar relacionamento específico");
+            System.out.println("3. Criar novo relacionamento");
+            System.out.println("4. Atualizar valor investido");
+            System.out.println("5. Deletar relacionamento");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
 
@@ -792,6 +793,24 @@ public class SystemApp {
                         break;
 
                     case 2:
+                        System.out.println("\n=== BUSCAR RELACIONAMENTO ===");
+                        System.out.print("ID do usuário: ");
+                        int findUserId = readInt();
+                        System.out.print("ID da empresa: ");
+                        int findCompanyId = readInt();
+
+                        Map<String, Object> rel = userCompanyRelationDAO.findByKeys(findUserId, findCompanyId);
+
+                        if (rel != null) {
+                            System.out.println("✅ Relacionamento encontrado:");
+                            System.out.printf("- Usuário ID: %d | Empresa ID: %d | Investido: $%.2f | Data: %s%n",
+                                    rel.get("userId"), rel.get("companyId"), rel.get("amount"), rel.get("date"));
+                        } else {
+                            System.out.println("❌ Relacionamento não encontrado.");
+                        }
+                        break;
+
+                    case 3:
                         System.out.println("\n=== CRIAR RELACIONAMENTO ===");
                         System.out.print("ID do usuário: ");
                         int userId = readInt();
@@ -805,7 +824,7 @@ public class SystemApp {
                         userCompanyRelationDAO.insert(userId, newCompanyId, amount, LocalDate.now());
                         break;
 
-                    case 3:
+                    case 4:
                         System.out.println("\n=== ATUALIZAR VALOR INVESTIDO ===");
                         System.out.print("ID do usuário: ");
                         int updateUserId = readInt();
@@ -819,7 +838,7 @@ public class SystemApp {
                         userCompanyRelationDAO.updateInvestedAmount(updateUserId, updateCompanyId, newAmount);
                         break;
 
-                    case 4:
+                    case 5:
                         System.out.println("\n=== DELETAR RELACIONAMENTO ===");
                         System.out.print("ID do usuário: ");
                         int delUserId = readInt();
@@ -860,8 +879,10 @@ public class SystemApp {
             System.out.println("CRUD - ALOCAÇÃO DE ATIVOS PARA EMPRESAS");
             System.out.println("─".repeat(80));
             System.out.println("1. Listar ativos de uma empresa");
-            System.out.println("2. Adicionar/Atualizar ativo para empresa");
-            System.out.println("3. Remover ativo de empresa");
+            System.out.println("2. Buscar alocação específica");
+            System.out.println("3. Adicionar ativo para empresa (Inclusão)");
+            System.out.println("4. Atualizar quantidade de ativo (Alteração)");
+            System.out.println("5. Remover ativo de empresa (Exclusão)");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
 
@@ -881,21 +902,53 @@ public class SystemApp {
                         break;
 
                     case 2:
-                        System.out.println("\n=== ADICIONAR/ATUALIZAR ATIVO ===");
+                        System.out.println("\n=== BUSCAR ALOCAÇÃO ===");
+                        System.out.print("ID da empresa: ");
+                        int findCompanyId = readInt();
+                        System.out.print("ID do ativo cripto: ");
+                        int findAssetId = readInt();
+
+                        CryptoAsset asset = companyCryptoAssetDAO.findByKeys(findCompanyId, findAssetId);
+
+                        if (asset != null) {
+                            System.out.println("✅ Alocação encontrada:");
+                            System.out.printf("- %s (%s): %.4f (Quantidade alocada)%n",
+                                    asset.getName(), asset.getSymbol(), asset.getQuantity());
+                        } else {
+                            System.out.println("❌ Alocação não encontrada.");
+                        }
+                        break;
+
+                    case 3:
+                        System.out.println("\n=== ADICIONAR ATIVO (INCLUSÃO) ===");
                         System.out.print("ID da empresa: ");
                         int newCompanyId = readInt();
 
                         System.out.print("ID do ativo cripto: ");
                         int assetId = readInt();
 
-                        System.out.print("Quantidade: ");
+                        System.out.print("Quantidade a adicionar: ");
                         double quantity = readDouble();
 
                         companyCryptoAssetDAO.addOrUpdateAssetForCompany(newCompanyId, assetId, quantity);
                         break;
 
-                    case 3:
-                        System.out.println("\n=== REMOVER ATIVO ===");
+                    case 4:
+                        System.out.println("\n=== ATUALIZAR QUANTIDADE (ALTERAÇÃO) ===");
+                        System.out.print("ID da empresa: ");
+                        int updateCompanyId = readInt();
+
+                        System.out.print("ID do ativo cripto: ");
+                        int updateAssetId = readInt();
+
+                        System.out.print("Nova Quantidade (define o valor total): ");
+                        double newQuantity = readDouble();
+
+                        companyCryptoAssetDAO.updateAssetQuantity(updateCompanyId, updateAssetId, newQuantity);
+                        break;
+
+                    case 5:
+                        System.out.println("\n=== REMOVER ATIVO (EXCLUSÃO) ===");
                         System.out.print("ID da empresa: ");
                         int delCompanyId = readInt();
 
@@ -935,9 +988,10 @@ public class SystemApp {
             System.out.println("CRUD - ATIVOS EM CARTEIRAS");
             System.out.println("─".repeat(80));
             System.out.println("1. Listar ativos de uma carteira");
-            System.out.println("2. Adicionar ativo à carteira");
-            System.out.println("3. Atualizar quantidade de ativo");
-            System.out.println("4. Remover ativo da carteira");
+            System.out.println("2. Buscar ativo específico na carteira");
+            System.out.println("3. Adicionar ativo à carteira (Inclusão)");
+            System.out.println("4. Atualizar quantidade de ativo (Alteração)");
+            System.out.println("5. Remover ativo da carteira (Exclusão)");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
 
@@ -958,7 +1012,25 @@ public class SystemApp {
                         break;
 
                     case 2:
-                        System.out.println("\n=== ADICIONAR ATIVO ===");
+                        System.out.println("\n=== BUSCAR ATIVO NA CARTEIRA ===");
+                        System.out.print("ID da carteira: ");
+                        int findWalletId = readInt();
+                        System.out.print("ID do ativo cripto: ");
+                        int findAssetId = readInt();
+
+                        CryptoAsset asset = walletCryptoAssetDAO.findByKeys(findWalletId, findAssetId);
+
+                        if (asset != null) {
+                            System.out.println("✅ Ativo encontrado na carteira:");
+                            System.out.printf("- %s (%s): %.4f (Quantidade na carteira)%n",
+                                    asset.getName(), asset.getSymbol(), asset.getQuantity());
+                        } else {
+                            System.out.println("❌ Ativo não encontrado nesta carteira.");
+                        }
+                        break;
+
+                    case 3:
+                        System.out.println("\n=== ADICIONAR ATIVO (INCLUSÃO) ===");
                         System.out.print("ID da carteira: ");
                         int newWalletId = readInt();
 
@@ -971,8 +1043,8 @@ public class SystemApp {
                         walletCryptoAssetDAO.addCryptoAssetToWallet(newWalletId, assetId, quantity);
                         break;
 
-                    case 3:
-                        System.out.println("\n=== ATUALIZAR QUANTIDADE ===");
+                    case 4:
+                        System.out.println("\n=== ATUALIZAR QUANTIDADE (ALTERAÇÃO) ===");
                         System.out.print("ID da carteira: ");
                         int updateWalletId = readInt();
 
@@ -985,8 +1057,8 @@ public class SystemApp {
                         walletCryptoAssetDAO.updateCryptoAssetQuantity(updateWalletId, updateAssetId, newQuantity);
                         break;
 
-                    case 4:
-                        System.out.println("\n=== REMOVER ATIVO ===");
+                    case 5:
+                        System.out.println("\n=== REMOVER ATIVO (EXCLUSÃO) ===");
                         System.out.print("ID da carteira: ");
                         int delWalletId = readInt();
 

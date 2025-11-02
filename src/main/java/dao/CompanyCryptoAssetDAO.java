@@ -14,12 +14,12 @@ public class CompanyCryptoAssetDAO {
 
     public void addOrUpdateAssetForCompany(int companyId, int cryptoAssetId, double quantity) {
         String sql = "MERGE INTO company_cryptoAsset cca " +
-                     "USING (SELECT ? AS company_id, ? AS crypto_asset_id, ? AS quantity FROM dual) src " +
-                     "ON (cca.company_id = src.company_id AND cca.crypto_asset_id = src.crypto_asset_id) " +
-                     "WHEN MATCHED THEN " +
-                     "  UPDATE SET cca.quantity = cca.quantity + src.quantity " +
-                     "WHEN NOT MATCHED THEN " +
-                     "  INSERT (company_id, crypto_asset_id, quantity) VALUES (src.company_id, src.crypto_asset_id, src.quantity)";
+                "USING (SELECT ? AS company_id, ? AS crypto_asset_id, ? AS quantity FROM dual) src " +
+                "ON (cca.company_id = src.company_id AND cca.crypto_asset_id = src.crypto_asset_id) " +
+                "WHEN MATCHED THEN " +
+                "  UPDATE SET cca.quantity = cca.quantity + src.quantity " +
+                "WHEN NOT MATCHED THEN " +
+                "  INSERT (company_id, crypto_asset_id, quantity) VALUES (src.company_id, src.crypto_asset_id, src.quantity)";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -33,6 +33,26 @@ public class CompanyCryptoAssetDAO {
 
         } catch (SQLException e) {
             System.err.println("❌ Erro ao alocar ativo para empresa: " + e.getMessage());
+        }
+    }
+
+    public void updateAssetQuantity(int companyId, int assetId, double newQuantity) {
+        String sql = "UPDATE company_cryptoAsset SET quantity = ? WHERE company_id = ? AND crypto_asset_id = ?";
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDouble(1, newQuantity);
+            stmt.setInt(2, companyId);
+            stmt.setInt(3, assetId);
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("✅ Quantidade do ativo atualizada com sucesso.");
+            } else {
+                System.out.println("⚠️ Associação não encontrada para atualização.");
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Erro ao atualizar quantidade do ativo: " + e.getMessage());
         }
     }
 
@@ -58,9 +78,9 @@ public class CompanyCryptoAssetDAO {
     public List<CryptoAsset> getAssetsByCompanyId(int companyId) {
         List<CryptoAsset> assets = new ArrayList<>();
         String sql = "SELECT ca.id, ca.name, ca.symbol, ca.price, cca.quantity " +
-                     "FROM cryptoAsset ca " +
-                     "JOIN company_cryptoAsset cca ON ca.id = cca.crypto_asset_id " +
-                     "WHERE cca.company_id = ?";
+                "FROM cryptoAsset ca " +
+                "JOIN company_cryptoAsset cca ON ca.id = cca.crypto_asset_id " +
+                "WHERE cca.company_id = ?";
 
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -81,5 +101,33 @@ public class CompanyCryptoAssetDAO {
             System.err.println("❌ Erro ao buscar ativos por empresa: " + e.getMessage());
         }
         return assets;
+    }
+
+    public CryptoAsset findByKeys(int companyId, int assetId) {
+        String sql = "SELECT ca.name, ca.symbol, cca.quantity " +
+                "FROM company_cryptoAsset cca " +
+                "JOIN cryptoAsset ca ON cca.crypto_asset_id = ca.id " +
+                "WHERE cca.company_id = ? AND cca.crypto_asset_id = ?";
+        CryptoAsset asset = null;
+
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, companyId);
+            ps.setInt(2, assetId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String name = rs.getString("name");
+                    String symbol = rs.getString("symbol");
+                    double quantity = rs.getDouble("quantity");
+
+                    asset = new CryptoAsset(name, symbol, quantity, 0.0);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Erro ao buscar alocação: " + e.getMessage());
+        }
+        return asset;
     }
 }

@@ -6,7 +6,9 @@ import model.UserCompanyRelation;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class UserCompanyRelationDAO {
 
@@ -71,7 +73,7 @@ public class UserCompanyRelationDAO {
         }
     }
 
-   public List<Integer> findUsersByCompanyId(int companyId) {
+    public List<Integer> findUsersByCompanyId(int companyId) {
         List<Integer> userIds = new ArrayList<>();
         String sql = "SELECT user_id FROM userCompanyRelation WHERE company_id = ?";
         try (Connection conn = OracleConnection.getConnection();
@@ -87,5 +89,27 @@ public class UserCompanyRelationDAO {
             System.err.println("❌ Erro ao buscar usuários por empresa: " + e.getMessage());
         }
         return userIds;
+    }
+
+    public Map<String, Object> findByKeys(int userId, int companyId) {
+        String sql = "SELECT * FROM userCompanyRelation WHERE user_id = ? AND company_id = ?";
+        Map<String, Object> result = null;
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, companyId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    result = new HashMap<>();
+                    result.put("userId", rs.getInt("user_id"));
+                    result.put("companyId", rs.getInt("company_id"));
+                    result.put("amount", rs.getDouble("invested_amount"));
+                    result.put("date", rs.getDate("start_date").toLocalDate());
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Erro ao buscar relacionamento: " + e.getMessage());
+        }
+        return result;
     }
 }

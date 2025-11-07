@@ -36,9 +36,9 @@ public class TransactionDAO {
 
     public Transaction findById(int id) {
         String sql = "SELECT t.id, t.amount, t.type, t.timestamp, ca.id as crypto_id, ca.name, ca.symbol, ca.price " +
-                     "FROM transaction t " +
-                     "JOIN cryptoAsset ca ON t.crypto_asset_id = ca.id " +
-                     "WHERE t.id = ?";
+                "FROM transaction t " +
+                "JOIN cryptoAsset ca ON t.crypto_asset_id = ca.id " +
+                "WHERE t.id = ?";
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -57,6 +57,11 @@ public class TransactionDAO {
                             rs.getDouble("amount"),
                             rs.getString("type")
                     );
+
+                    // --- ALTERAÇÃO ---
+                    transaction.setId(rs.getInt("id")); // Define o ID no objeto
+                    // -----------------
+
                     return transaction;
                 }
             }
@@ -69,16 +74,16 @@ public class TransactionDAO {
     public List<Transaction> findByUserId(int userId) {
         List<Transaction> transactions = new ArrayList<>();
         String sql = "SELECT t.id, t.amount, t.type, t.timestamp, ca.id as crypto_id, ca.name, ca.symbol, ca.price " +
-                     "FROM transaction t " +
-                     "JOIN cryptoAsset ca ON t.crypto_asset_id = ca.id " +
-                     "WHERE t.user_id = ? ORDER BY t.timestamp DESC";
+                "FROM transaction t " +
+                "JOIN cryptoAsset ca ON t.crypto_asset_id = ca.id " +
+                "WHERE t.user_id = ? ORDER BY t.timestamp DESC";
         try (Connection conn = OracleConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
+
             stmt.setInt(1, userId);
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                     CryptoAsset asset = new CryptoAsset(
+                    CryptoAsset asset = new CryptoAsset(
                             rs.getString("name"),
                             rs.getString("symbol"),
                             0,
@@ -89,6 +94,11 @@ public class TransactionDAO {
                             rs.getDouble("amount"),
                             rs.getString("type")
                     );
+
+                    // --- ALTERAÇÃO ---
+                    transaction.setId(rs.getInt("id")); // Define o ID no objeto
+                    // -----------------
+
                     transactions.add(transaction);
                 }
             }
@@ -97,6 +107,28 @@ public class TransactionDAO {
         }
         return transactions;
     }
+
+    // --- MÉTODO UPDATE ADICIONADO ---
+    public void update(Transaction transaction) {
+        String sql = "UPDATE transaction SET amount = ?, type = ? WHERE id = ?";
+        try (Connection conn = OracleConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDouble(1, transaction.getAmount());
+            stmt.setString(2, transaction.getType());
+            stmt.setInt(3, transaction.getId());
+
+            int rowsAffected = stmt.executeUpdate();
+            if (rowsAffected > 0) {
+                System.out.println("✅ Transação ID " + transaction.getId() + " atualizada com sucesso.");
+            } else {
+                System.out.println("⚠️ Nenhuma transação encontrada com o ID " + transaction.getId() + " para atualizar.");
+            }
+        } catch (SQLException e) {
+            System.err.println("❌ Erro ao atualizar transação: " + e.getMessage());
+        }
+    }
+    // ---------------------------------
 
     public void delete(int id) {
         String sql = "DELETE FROM transaction WHERE id = ?";

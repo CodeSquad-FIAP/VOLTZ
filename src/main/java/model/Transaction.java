@@ -2,6 +2,7 @@ package model;
 import java.time.LocalDateTime;
 
 public class Transaction {
+    private int id;
     private CryptoAsset asset;
     private double amount;
     private String type;
@@ -15,7 +16,25 @@ public class Transaction {
     }
 
     public void showTransaction() {
-        System.out.println("[" + timestamp + "] " + type + " " + amount + " of " + asset.getSymbol());
+        // Atualizado para mostrar o ID
+        System.out.println("[" + "ID: " + id + " | " + timestamp + "] " + type + " " + amount + " of " + asset.getSymbol());
+    }
+
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
+
+    public void setType(String type) {
+        this.type = type.toUpperCase();
     }
 
     public CryptoAsset getAsset() {

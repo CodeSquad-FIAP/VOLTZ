@@ -613,10 +613,11 @@ public class SystemApp {
             System.out.println("\n" + "─".repeat(80));
             System.out.println("CRUD - PREÇOS DE MERCADO");
             System.out.println("─".repeat(80));
-            System.out.println("1. Listar todos os preços");
-            System.out.println("2. Buscar preço por símbolo");
-            System.out.println("3. Salvar/Atualizar preço");
-            System.out.println("4. Deletar preço");
+            System.out.println("1. Listar todos os preços (Listar)");
+            System.out.println("2. Buscar preço por símbolo (Buscar)");
+            System.out.println("3. Criar novo preço (Inclusão)"); // <-- ALTERADO
+            System.out.println("4. Atualizar preço (Alteração)"); // <-- ADICIONADO
+            System.out.println("5. Deletar preço (Exclusão)"); // <-- MUDOU DE 4 PARA 5
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
 
@@ -642,10 +643,16 @@ public class SystemApp {
                         }
                         break;
 
-                    case 3:
-                        System.out.println("\n=== SALVAR/ATUALIZAR PREÇO ===");
+                    case 3: // <-- LÓGICA DE INCLUSÃO
+                        System.out.println("\n=== CRIAR NOVO PREÇO ===");
                         System.out.print("Símbolo: ");
                         String newSymbol = scanner.nextLine().toUpperCase();
+
+                        // Verifica se já existe
+                        if (marketDAO.getPrice(newSymbol) != null) {
+                            System.out.println("❌ Erro: Símbolo já existe. Use a Opção 4 para atualizar.");
+                            break;
+                        }
 
                         System.out.print("Preço: $");
                         double newPrice = readDouble();
@@ -653,7 +660,26 @@ public class SystemApp {
                         marketDAO.save(newSymbol, newPrice);
                         break;
 
-                    case 4:
+                    case 4: // <-- LÓGICA DE ALTERAÇÃO
+                        System.out.println("\n=== ATUALIZAR PREÇO ===");
+                        System.out.print("Símbolo: ");
+                        String updateSymbol = scanner.nextLine().toUpperCase();
+
+                        // Verifica se existe antes de atualizar
+                        Double currentPrice = marketDAO.getPrice(updateSymbol);
+                        if (currentPrice == null) {
+                            System.out.println("❌ Erro: Símbolo não encontrado. Use a Opção 3 para criar.");
+                            break;
+                        }
+
+                        System.out.printf("Preço atual de %s: $%,.2f%n", updateSymbol, currentPrice);
+                        System.out.print("Novo preço: $");
+                        double updatePrice = readDouble();
+
+                        marketDAO.save(updateSymbol, updatePrice);
+                        break;
+
+                    case 5: // <-- MUDOU DE 4 PARA 5
                         System.out.print("Digite o símbolo a deletar: ");
                         String deleteSymbol = scanner.nextLine().toUpperCase();
 
@@ -690,8 +716,10 @@ public class SystemApp {
             System.out.println("CRUD - TRANSAÇÕES");
             System.out.println("─".repeat(80));
             System.out.println("1. Listar transações por usuário");
-            System.out.println("2. Criar nova transação");
-            System.out.println("3. Deletar transação");
+            System.out.println("2. Buscar transação por ID"); // <- ADICIONADO
+            System.out.println("3. Criar nova transação");
+            System.out.println("4. Atualizar transação"); // <- ADICIONADO
+            System.out.println("5. Deletar transação");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
 
@@ -708,6 +736,18 @@ public class SystemApp {
                         break;
 
                     case 2:
+                        System.out.print("Digite o ID da transação: ");
+                        int findId = readInt();
+
+                        Transaction tx = transactionDAO.findById(findId);
+                        if (tx != null) {
+                            tx.showTransaction();
+                        } else {
+                            System.out.println("❌ Transação não encontrada!");
+                        }
+                        break;
+
+                    case 3:
                         System.out.println("\n=== CRIAR NOVA TRANSAÇÃO ===");
                         System.out.print("ID do usuário: ");
                         int newUserId = readInt();
@@ -736,7 +776,45 @@ public class SystemApp {
                         transactionDAO.insert(newTransaction, newUserId, assetId);
                         break;
 
-                    case 3:
+                    case 4:
+                        System.out.print("Digite o ID da transação a atualizar: ");
+                        int updateId = readInt();
+
+                        Transaction txToUpdate = transactionDAO.findById(updateId);
+
+                        if (txToUpdate == null) {
+                            System.out.println("❌ Transação não encontrada!");
+                            break;
+                        }
+
+                        System.out.println("Dados atuais:");
+                        txToUpdate.showTransaction();
+
+                        System.out.print("Nova quantidade (Enter para manter): ");
+                        String amountStr = scanner.nextLine();
+                        double newAmount = amountStr.trim().isEmpty() ?
+                                txToUpdate.getAmount() : Double.parseDouble(amountStr);
+
+                        System.out.print("Novo tipo (BUY/SELL) (Enter para manter): ");
+                        String newType = scanner.nextLine().toUpperCase();
+                        if (newType.trim().isEmpty()) {
+                            newType = txToUpdate.getType();
+                        }
+
+                        if (!newType.equals("BUY") && !newType.equals("SELL")) {
+                            System.out.println("❌ Tipo inválido! Use BUY ou SELL.");
+                            break;
+                        }
+
+                        txToUpdate.setAmount(newAmount);
+                        txToUpdate.setType(newType);
+                        transactionDAO.update(txToUpdate);
+
+                        System.out.println("✅ Transação atualizada!");
+                        break;
+                    // ================================
+
+                    case 5:
                         System.out.print("Digite o ID da transação a deletar: ");
                         int deleteId = readInt();
 

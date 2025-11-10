@@ -18,17 +18,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Comparator;
 
-/**
- * ============================================================================
- * VOLTZ CRYPTO MANAGEMENT SYSTEM - INTERACTIVE VERSION
- * ============================================================================
- * Sistema com menu interativo para CRUD e testes automatizados
- *
- * @version 3.0
- * @since 2025-10-11
- * ============================================================================
- */
 public class SystemApp {
 
     // DAOs
@@ -40,6 +31,12 @@ public class SystemApp {
     private static CompanyCryptoAssetDAO companyCryptoAssetDAO;
     private static WalletCryptoAssetDAO walletCryptoAssetDAO;
     private static UserCompanyRelationDAO userCompanyRelationDAO;
+
+    // Cache em memória
+    private static List<User> userCache = new ArrayList<>();
+    private static List<Company> companyCache = new ArrayList<>();
+    private static List<CryptoAsset> cryptoAssetCache = new ArrayList<>();
+
 
     // Scanner global
     private static Scanner scanner = new Scanner(System.in);
@@ -56,6 +53,7 @@ public class SystemApp {
     public static void main(String[] args) {
         printHeader();
         initializeDAOs();
+        loadDataToMemory();
 
         while (true) {
             try {
@@ -115,6 +113,7 @@ public class SystemApp {
             System.out.println("7. Relacionamentos Usuário-Empresa");
             System.out.println("8. Alocação de Ativos para Empresas");
             System.out.println("9. Ativos em Carteiras");
+            System.out.println("10. Recarregar Cache do DB");
             System.out.println("0. Voltar ao Menu Principal");
             System.out.println("═".repeat(80));
             System.out.print("Escolha uma opção: ");
@@ -131,6 +130,7 @@ public class SystemApp {
                 case 7: crudUserCompanyRelation(); break;
                 case 8: crudCompanyCryptoAsset(); break;
                 case 9: crudWalletCryptoAsset(); break;
+                case 10: loadDataToMemory(); break;
                 case 0: return;
                 default: System.out.println("❌ Opção inválida!");
             }
@@ -159,17 +159,26 @@ public class SystemApp {
             try {
                 switch (opcao) {
                     case 1:
-                        User.displayAllUsers();
+                        System.out.println("\n👥 Total: " + userCache.size() + " usuário(s) em cache");
+                        if (userCache.isEmpty()) {
+                            System.out.println("Cache vazio.");
+                        } else {
+                            userCache.forEach(User::showInfo);
+                        }
                         break;
 
                     case 2:
                         System.out.print("Digite o ID do usuário: ");
                         int id = readInt();
-                        User user = User.findById(id);
+                        User user = userCache.stream()
+                                .filter(u -> u.getId() == id)
+                                .findFirst()
+                                .orElse(null);
+
                         if (user != null) {
                             user.showInfo();
                         } else {
-                            System.out.println("❌ Usuário não encontrado!");
+                            System.out.println("❌ Usuário não encontrado no cache!");
                         }
                         break;
 
@@ -184,15 +193,20 @@ public class SystemApp {
                         System.out.print("Senha: ");
                         String senha = scanner.nextLine();
 
-                        int novoId = User.getNextAvailableId();
+                        int novoId = getNextUserIdFromCache();
                         User novoUser = new User(nome, novoId, email, senha);
                         novoUser.insert();
+                        userCache.add(novoUser);
+                        System.out.println("✅ Usuário criado e adicionado ao cache.");
                         break;
 
                     case 4:
                         System.out.print("Digite o ID do usuário a atualizar: ");
                         int updateId = readInt();
-                        User userToUpdate = User.findById(updateId);
+                        User userToUpdate = userCache.stream()
+                                .filter(u -> u.getId() == updateId)
+                                .findFirst()
+                                .orElse(null);
 
                         if (userToUpdate != null) {
                             System.out.println("Dados atuais:");
@@ -217,6 +231,7 @@ public class SystemApp {
                             }
 
                             userToUpdate.update();
+                            System.out.println("✅ Usuário atualizado no BD e cache.");
                         } else {
                             System.out.println("❌ Usuário não encontrado!");
                         }
@@ -225,7 +240,10 @@ public class SystemApp {
                     case 5:
                         System.out.print("Digite o ID do usuário a deletar: ");
                         int deleteId = readInt();
-                        User userToDelete = User.findById(deleteId);
+                        User userToDelete = userCache.stream()
+                                .filter(u -> u.getId() == deleteId)
+                                .findFirst()
+                                .orElse(null);
 
                         if (userToDelete != null) {
                             System.out.println("Confirma exclusão de:");
@@ -235,6 +253,8 @@ public class SystemApp {
 
                             if ("SIM".equalsIgnoreCase(confirmacao.trim())) {
                                 userToDelete.delete();
+                                userCache.remove(userToDelete);
+                                System.out.println("✅ Usuário deletado do DB e cache.");
                             } else {
                                 System.out.println("❌ Exclusão cancelada.");
                             }
@@ -278,19 +298,22 @@ public class SystemApp {
             try {
                 switch (opcao) {
                     case 1:
-                        List<Company> companies = companyDAO.findAll();
-                        System.out.println("\n📊 Total: " + companies.size() + " empresa(s)");
-                        companies.forEach(Company::showInfo);
+                        System.out.println("\n📊 Total: " + companyCache.size() + " empresa(s) em cache");
+                        companyCache.forEach(Company::showInfo);
                         break;
 
                     case 2:
                         System.out.print("Digite o ID da empresa: ");
                         int id = readInt();
-                        Company company = companyDAO.findById(id);
+                        Company company = companyCache.stream()
+                                .filter(c -> c.getId() == id)
+                                .findFirst()
+                                .orElse(null);
+
                         if (company != null) {
                             company.showInfo();
                         } else {
-                            System.out.println("❌ Empresa não encontrada!");
+                            System.out.println("❌ Empresa não encontrada no cache!");
                         }
                         break;
 
@@ -307,12 +330,17 @@ public class SystemApp {
 
                         Company novaCompany = new Company(nome, novoId, identificador);
                         companyDAO.insert(novaCompany);
+                        companyCache.add(novaCompany);
+                        System.out.println("✅ Empresa criada e adicionada ao cache.");
                         break;
 
                     case 4:
                         System.out.print("Digite o ID da empresa a atualizar: ");
                         int updateId = readInt();
-                        Company companyToUpdate = companyDAO.findById(updateId);
+                        Company companyToUpdate = companyCache.stream()
+                                .filter(c -> c.getId() == updateId)
+                                .findFirst()
+                                .orElse(null);
 
                         if (companyToUpdate != null) {
                             System.out.println("Dados atuais:");
@@ -321,16 +349,17 @@ public class SystemApp {
                             System.out.print("\nNovo nome (Enter para manter): ");
                             String newName = scanner.nextLine();
                             if (!newName.trim().isEmpty()) {
-                                companyToUpdate = new Company(newName, updateId, companyToUpdate.getIdentifier());
+                                companyToUpdate.setName(newName);
                             }
 
                             System.out.print("Novo identificador (Enter para manter): ");
                             String newId = scanner.nextLine();
                             if (!newId.trim().isEmpty()) {
-                                companyToUpdate = new Company(companyToUpdate.getName(), updateId, newId);
+                                companyToUpdate.setIdentifier(newId);
                             }
 
                             companyDAO.update(companyToUpdate);
+                            System.out.println("✅ Empresa atualizada no DB e cache.");
                         } else {
                             System.out.println("❌ Empresa não encontrada!");
                         }
@@ -339,7 +368,10 @@ public class SystemApp {
                     case 5:
                         System.out.print("Digite o ID da empresa a deletar: ");
                         int deleteId = readInt();
-                        Company companyToDelete = companyDAO.findById(deleteId);
+                        Company companyToDelete = companyCache.stream()
+                                .filter(c -> c.getId() == deleteId)
+                                .findFirst()
+                                .orElse(null);
 
                         if (companyToDelete != null) {
                             System.out.println("Confirma exclusão de:");
@@ -349,6 +381,8 @@ public class SystemApp {
 
                             if ("SIM".equalsIgnoreCase(confirmacao.trim())) {
                                 companyDAO.delete(deleteId);
+                                companyCache.remove(companyToDelete);
+                                System.out.println("✅ Empresa deletada do DB e cache.");
                             } else {
                                 System.out.println("❌ Exclusão cancelada.");
                             }
@@ -392,9 +426,8 @@ public class SystemApp {
             try {
                 switch (opcao) {
                     case 1:
-                        List<CryptoAsset> assets = cryptoAssetDAO.findAll();
-                        System.out.println("\n💎 Total: " + assets.size() + " ativo(s)");
-                        for (CryptoAsset asset : assets) {
+                        System.out.println("\n💎 Total: " + cryptoAssetCache.size() + " ativo(s) em cache");
+                        for (CryptoAsset asset : cryptoAssetCache) {
                             System.out.printf("- %s (%s) | Qty: %.4f | Price: $%.2f%n",
                                     asset.getName(), asset.getSymbol(), asset.getQuantity(), asset.getPrice());
                         }
@@ -403,12 +436,16 @@ public class SystemApp {
                     case 2:
                         System.out.print("Digite o ID do ativo: ");
                         int id = readInt();
-                        CryptoAsset asset = cryptoAssetDAO.findById(id);
+                        CryptoAsset asset = cryptoAssetCache.stream()
+                                .filter(a -> a.getId() == id)
+                                .findFirst()
+                                .orElse(null);
+
                         if (asset != null) {
                             System.out.printf("%s (%s) | Qty: %.4f | Price: $%.2f%n",
                                     asset.getName(), asset.getSymbol(), asset.getQuantity(), asset.getPrice());
                         } else {
-                            System.out.println("❌ Ativo não encontrado!");
+                            System.out.println("❌ Ativo não encontrado no cache!");
                         }
                         break;
 
@@ -432,21 +469,18 @@ public class SystemApp {
 
                         CryptoAsset novoAsset = new CryptoAsset(nome, simbolo, quantidade, preco);
                         cryptoAssetDAO.insert(novoAsset);
+                        cryptoAssetCache.add(novoAsset);
+                        System.out.println("✅ Ativo criado e adicionado ao cache.");
                         break;
 
                     case 4:
                         System.out.print("Digite o símbolo do ativo a atualizar (ex: BTC): ");
                         String symbolToUpdate = scanner.nextLine();
 
-                        // Buscar por símbolo
-                        List<CryptoAsset> allAssets = cryptoAssetDAO.findAll();
-                        CryptoAsset assetToUpdate = null;
-                        for (CryptoAsset a : allAssets) {
-                            if (a.getSymbol().equalsIgnoreCase(symbolToUpdate)) {
-                                assetToUpdate = a;
-                                break;
-                            }
-                        }
+                        CryptoAsset assetToUpdate = cryptoAssetCache.stream()
+                                .filter(a -> a.getSymbol().equalsIgnoreCase(symbolToUpdate))
+                                .findFirst()
+                                .orElse(null);
 
                         if (assetToUpdate != null) {
                             System.out.printf("Dados atuais: %s (%s) | Qty: %.4f | Price: $%.2f%n",
@@ -455,18 +489,20 @@ public class SystemApp {
 
                             System.out.print("\nNovo nome (Enter para manter): ");
                             String newName = scanner.nextLine();
-                            if (newName.trim().isEmpty()) newName = assetToUpdate.getName();
+                            if (!newName.trim().isEmpty()) assetToUpdate.setName(newName);
 
                             System.out.print("Nova quantidade (Enter para manter): ");
                             String qtyStr = scanner.nextLine();
                             double newQty = qtyStr.trim().isEmpty() ? assetToUpdate.getQuantity() : Double.parseDouble(qtyStr);
+                            if (!qtyStr.trim().isEmpty()) assetToUpdate.setQuantity(newQty);
 
                             System.out.print("Novo preço (Enter para manter): ");
                             String priceStr = scanner.nextLine();
                             double newPrice = priceStr.trim().isEmpty() ? assetToUpdate.getPrice() : Double.parseDouble(priceStr);
+                            if (!priceStr.trim().isEmpty()) assetToUpdate.setPrice(newPrice);
 
-                            CryptoAsset updated = new CryptoAsset(newName, symbolToUpdate, newQty, newPrice);
-                            cryptoAssetDAO.update(updated, symbolToUpdate);
+                            cryptoAssetDAO.update(assetToUpdate, symbolToUpdate);
+                            System.out.println("✅ Ativo atualizado no DB e cache.");
                         } else {
                             System.out.println("❌ Ativo não encontrado!");
                         }
@@ -481,6 +517,8 @@ public class SystemApp {
 
                         if ("SIM".equalsIgnoreCase(confirmacao.trim())) {
                             cryptoAssetDAO.delete(symbolToDelete);
+                            cryptoAssetCache.removeIf(a -> a.getSymbol().equalsIgnoreCase(symbolToDelete));
+                            System.out.println("✅ Ativo deletado no DB e cache.");
                         } else {
                             System.out.println("❌ Exclusão cancelada.");
                         }
@@ -615,9 +653,9 @@ public class SystemApp {
             System.out.println("─".repeat(80));
             System.out.println("1. Listar todos os preços (Listar)");
             System.out.println("2. Buscar preço por símbolo (Buscar)");
-            System.out.println("3. Criar novo preço (Inclusão)"); // <-- ALTERADO
-            System.out.println("4. Atualizar preço (Alteração)"); // <-- ADICIONADO
-            System.out.println("5. Deletar preço (Exclusão)"); // <-- MUDOU DE 4 PARA 5
+            System.out.println("3. Criar novo preço (Inclusão)");
+            System.out.println("4. Atualizar preço (Alteração)");
+            System.out.println("5. Deletar preço (Exclusão)");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
 
@@ -716,9 +754,9 @@ public class SystemApp {
             System.out.println("CRUD - TRANSAÇÕES");
             System.out.println("─".repeat(80));
             System.out.println("1. Listar transações por usuário");
-            System.out.println("2. Buscar transação por ID"); // <- ADICIONADO
+            System.out.println("2. Buscar transação por ID");
             System.out.println("3. Criar nova transação");
-            System.out.println("4. Atualizar transação"); // <- ADICIONADO
+            System.out.println("4. Atualizar transação");
             System.out.println("5. Deletar transação");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
@@ -1167,8 +1205,40 @@ public class SystemApp {
     }
 
     // ============================================================================
+    // MÉTODOS DE CACHE
+    // ============================================================================
+
+    private static void loadDataToMemory() {
+        try {
+            System.out.println("⏳ Carregando dados do banco de dados para a memória...");
+            userCache = User.getAllUsers();
+            companyCache = companyDAO.findAll();
+            cryptoAssetCache = cryptoAssetDAO.findAll();
+
+            System.out.printf("✅ Dados carregados: %d Usuários, %d Empresas, %d Ativos Cripto.%n", userCache.size(), companyCache.size(), cryptoAssetCache.size());
+        } catch (Exception e) {
+            System.err.println("❌ Erro crítico ao carregar dados para a memória: " + e.getMessage());
+            e.printStackTrace();
+            System.out.println("A aplicação não pode continuar sem os dados iniciais. Encerrando.");
+            System.exit(1);
+        }
+    }
+
+    // ============================================================================
     // MÉTODOS AUXILIARES
     // ============================================================================
+    
+    private static int getNextUserIdFromCache() {
+        if (userCache.isEmpty()) {
+            return User.getNextAvailableId();
+        }
+
+        int maxId = userCache.stream()
+                .mapToInt(User::getId)
+                .max()
+                .orElse(0);
+        return maxId + 1;
+    }
 
     private static int readInt() {
         try {
@@ -1207,8 +1277,8 @@ public class SystemApp {
 
     private static void printHeader() {
         System.out.println("\n" + "═".repeat(80));
-        System.out.println("   ⚡ VOLTZ CRYPTO MANAGEMENT SYSTEM v3.0");
-        System.out.println("   🔬 Sistema Interativo com CRUD e Testes Automatizados");
+        System.out.println("    ⚡ VOLTZ CRYPTO MANAGEMENT SYSTEM v3.0");
+        System.out.println("    🔬 Sistema Interativo com CRUD e Testes Automatizados");
         System.out.println("═".repeat(80));
         System.out.println("📅 Data: " + LocalDate.now());
         System.out.println("🏛️  Instituição: FIAP");

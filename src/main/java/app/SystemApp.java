@@ -2,23 +2,11 @@ package app;
 
 import dao.*;
 import model.*;
-import report.Report;
 import db.OracleConnection;
 
-import java.io.BufferedWriter;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.Comparator;
+import java.util.regex.Pattern;
 
 public class SystemApp {
 
@@ -37,7 +25,6 @@ public class SystemApp {
     private static List<Company> companyCache = new ArrayList<>();
     private static List<CryptoAsset> cryptoAssetCache = new ArrayList<>();
 
-
     // Scanner global
     private static Scanner scanner = new Scanner(System.in);
 
@@ -45,6 +32,9 @@ public class SystemApp {
     private static int totalTests = 0;
     private static int passedTests = 0;
     private static int failedTests = 0;
+
+    // Padrão Regex para Email Simples
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
 
     // ============================================================================
     // MAIN - MENU PRINCIPAL
@@ -169,7 +159,7 @@ public class SystemApp {
 
                     case 2:
                         System.out.print("Digite o ID do usuário: ");
-                        int id = readInt();
+                        int id = readPositiveInt(); // Validação: ID positivo
                         User user = userCache.stream()
                                 .filter(u -> u.getId() == id)
                                 .findFirst()
@@ -184,14 +174,21 @@ public class SystemApp {
 
                     case 3:
                         System.out.println("\n=== CRIAR NOVO USUÁRIO ===");
-                        System.out.print("Nome: ");
-                        String nome = scanner.nextLine();
+                        
+                        // Validação: Nome não vazio
+                        String nome = readStringNotEmpty("Nome");
 
-                        System.out.print("Email: ");
-                        String email = scanner.nextLine();
+                        // Validação: Email válido
+                        String email;
+                        while (true) {
+                            System.out.print("Email: ");
+                            email = scanner.nextLine().trim();
+                            if (isValidEmail(email)) break;
+                            System.out.println("❌ Email inválido! Use o formato exemplo@dominio.com");
+                        }
 
-                        System.out.print("Senha: ");
-                        String senha = scanner.nextLine();
+                        // Validação: Senha não vazia
+                        String senha = readStringNotEmpty("Senha");
 
                         int novoId = getNextUserIdFromCache();
                         User novoUser = new User(nome, novoId, email, senha);
@@ -202,7 +199,7 @@ public class SystemApp {
 
                     case 4:
                         System.out.print("Digite o ID do usuário a atualizar: ");
-                        int updateId = readInt();
+                        int updateId = readPositiveInt();
                         User userToUpdate = userCache.stream()
                                 .filter(u -> u.getId() == updateId)
                                 .findFirst()
@@ -215,19 +212,23 @@ public class SystemApp {
                             System.out.print("\nNovo nome (Enter para manter atual): ");
                             String newName = scanner.nextLine();
                             if (!newName.trim().isEmpty()) {
-                                userToUpdate.setName(newName);
+                                userToUpdate.setName(newName.trim());
                             }
 
                             System.out.print("Novo email (Enter para manter atual): ");
                             String newEmail = scanner.nextLine();
                             if (!newEmail.trim().isEmpty()) {
-                                userToUpdate.setEmail(newEmail);
+                                if (isValidEmail(newEmail.trim())) {
+                                    userToUpdate.setEmail(newEmail.trim());
+                                } else {
+                                    System.out.println("❌ Email inválido ignorado. Mantendo anterior.");
+                                }
                             }
 
                             System.out.print("Nova senha (Enter para manter atual): ");
                             String newPassword = scanner.nextLine();
                             if (!newPassword.trim().isEmpty()) {
-                                userToUpdate.setPassword(newPassword);
+                                userToUpdate.setPassword(newPassword.trim());
                             }
 
                             userToUpdate.update();
@@ -239,7 +240,7 @@ public class SystemApp {
 
                     case 5:
                         System.out.print("Digite o ID do usuário a deletar: ");
-                        int deleteId = readInt();
+                        int deleteId = readPositiveInt();
                         User userToDelete = userCache.stream()
                                 .filter(u -> u.getId() == deleteId)
                                 .findFirst()
@@ -304,7 +305,7 @@ public class SystemApp {
 
                     case 2:
                         System.out.print("Digite o ID da empresa: ");
-                        int id = readInt();
+                        int id = readPositiveInt();
                         Company company = companyCache.stream()
                                 .filter(c -> c.getId() == id)
                                 .findFirst()
@@ -319,14 +320,12 @@ public class SystemApp {
 
                     case 3:
                         System.out.println("\n=== CRIAR NOVA EMPRESA ===");
-                        System.out.print("Nome: ");
-                        String nome = scanner.nextLine();
+                        String nome = readStringNotEmpty("Nome da Empresa");
 
                         System.out.print("ID (número): ");
-                        int novoId = readInt();
+                        int novoId = readPositiveInt();
 
-                        System.out.print("Identificador (CNPJ/código): ");
-                        String identificador = scanner.nextLine();
+                        String identificador = readStringNotEmpty("Identificador (CNPJ/Código)");
 
                         Company novaCompany = new Company(nome, novoId, identificador);
                         companyDAO.insert(novaCompany);
@@ -336,7 +335,7 @@ public class SystemApp {
 
                     case 4:
                         System.out.print("Digite o ID da empresa a atualizar: ");
-                        int updateId = readInt();
+                        int updateId = readPositiveInt();
                         Company companyToUpdate = companyCache.stream()
                                 .filter(c -> c.getId() == updateId)
                                 .findFirst()
@@ -349,13 +348,13 @@ public class SystemApp {
                             System.out.print("\nNovo nome (Enter para manter): ");
                             String newName = scanner.nextLine();
                             if (!newName.trim().isEmpty()) {
-                                companyToUpdate.setName(newName);
+                                companyToUpdate.setName(newName.trim());
                             }
 
                             System.out.print("Novo identificador (Enter para manter): ");
                             String newId = scanner.nextLine();
                             if (!newId.trim().isEmpty()) {
-                                companyToUpdate.setIdentifier(newId);
+                                companyToUpdate.setIdentifier(newId.trim());
                             }
 
                             companyDAO.update(companyToUpdate);
@@ -367,7 +366,7 @@ public class SystemApp {
 
                     case 5:
                         System.out.print("Digite o ID da empresa a deletar: ");
-                        int deleteId = readInt();
+                        int deleteId = readPositiveInt();
                         Company companyToDelete = companyCache.stream()
                                 .filter(c -> c.getId() == deleteId)
                                 .findFirst()
@@ -435,7 +434,7 @@ public class SystemApp {
 
                     case 2:
                         System.out.print("Digite o ID do ativo: ");
-                        int id = readInt();
+                        int id = readPositiveInt();
                         CryptoAsset asset = cryptoAssetCache.stream()
                                 .filter(a -> a.getId() == id)
                                 .findFirst()
@@ -451,23 +450,22 @@ public class SystemApp {
 
                     case 3:
                         System.out.println("\n=== CRIAR NOVO ATIVO ===");
-                        System.out.print("Nome: ");
-                        String nome = scanner.nextLine();
+                        String nome = readStringNotEmpty("Nome");
+                        String simbolo;
 
-                        System.out.print("Símbolo (máx 10 caracteres, ex: BTC, ETH): ");
-                        String simbolo = scanner.nextLine();
-                        if (simbolo.length() > 10) {
+                        while (true) {
+                            simbolo = readStringNotEmpty("Símbolo (ex: BTC)");
+                            if (simbolo.length() <= 10) break;
                             System.out.println("❌ Símbolo muito longo! Máximo 10 caracteres.");
-                            break;
                         }
 
                         System.out.print("Quantidade inicial: ");
-                        double quantidade = readDouble();
+                        double quantidade = readPositiveDouble();
 
                         System.out.print("Preço: ");
-                        double preco = readDouble();
+                        double preco = readPositiveDouble();
 
-                        CryptoAsset novoAsset = new CryptoAsset(nome, simbolo, quantidade, preco);
+                        CryptoAsset novoAsset = new CryptoAsset(nome, simbolo.toUpperCase(), quantidade, preco);
                         cryptoAssetDAO.insert(novoAsset);
                         cryptoAssetCache.add(novoAsset);
                         System.out.println("✅ Ativo criado e adicionado ao cache.");
@@ -475,7 +473,7 @@ public class SystemApp {
 
                     case 4:
                         System.out.print("Digite o símbolo do ativo a atualizar (ex: BTC): ");
-                        String symbolToUpdate = scanner.nextLine();
+                        String symbolToUpdate = scanner.nextLine().trim();
 
                         CryptoAsset assetToUpdate = cryptoAssetCache.stream()
                                 .filter(a -> a.getSymbol().equalsIgnoreCase(symbolToUpdate))
@@ -489,17 +487,31 @@ public class SystemApp {
 
                             System.out.print("\nNovo nome (Enter para manter): ");
                             String newName = scanner.nextLine();
-                            if (!newName.trim().isEmpty()) assetToUpdate.setName(newName);
+                            if (!newName.trim().isEmpty()) assetToUpdate.setName(newName.trim());
 
                             System.out.print("Nova quantidade (Enter para manter): ");
                             String qtyStr = scanner.nextLine();
-                            double newQty = qtyStr.trim().isEmpty() ? assetToUpdate.getQuantity() : Double.parseDouble(qtyStr);
-                            if (!qtyStr.trim().isEmpty()) assetToUpdate.setQuantity(newQty);
+                            if (!qtyStr.trim().isEmpty()) {
+                                try {
+                                    double val = Double.parseDouble(qtyStr);
+                                    if (val >= 0) assetToUpdate.setQuantity(val);
+                                    else System.out.println("❌ Valor negativo ignorado.");
+                                } catch (NumberFormatException e) {
+                                    System.out.println("❌ Número inválido ignorado.");
+                                }
+                            }
 
                             System.out.print("Novo preço (Enter para manter): ");
                             String priceStr = scanner.nextLine();
-                            double newPrice = priceStr.trim().isEmpty() ? assetToUpdate.getPrice() : Double.parseDouble(priceStr);
-                            if (!priceStr.trim().isEmpty()) assetToUpdate.setPrice(newPrice);
+                            if (!priceStr.trim().isEmpty()) {
+                                try {
+                                    double val = Double.parseDouble(priceStr);
+                                    if (val >= 0) assetToUpdate.setPrice(val);
+                                    else System.out.println("❌ Valor negativo ignorado.");
+                                } catch (NumberFormatException e) {
+                                    System.out.println("❌ Número inválido ignorado.");
+                                }
+                            }
 
                             cryptoAssetDAO.update(assetToUpdate, symbolToUpdate);
                             System.out.println("✅ Ativo atualizado no DB e cache.");
@@ -510,7 +522,7 @@ public class SystemApp {
 
                     case 5:
                         System.out.print("Digite o símbolo do ativo a deletar: ");
-                        String symbolToDelete = scanner.nextLine();
+                        String symbolToDelete = scanner.nextLine().trim();
 
                         System.out.print("Digite 'SIM' para confirmar: ");
                         String confirmacao = scanner.nextLine();
@@ -569,7 +581,7 @@ public class SystemApp {
 
                     case 2:
                         System.out.print("Digite o ID da carteira: ");
-                        int id = readInt();
+                        int id = readPositiveInt();
                         Wallet wallet = walletDAO.findById(id);
                         if (wallet != null) {
                             System.out.printf("ID: %d | User ID: %d | Nome: %s%n",
@@ -582,13 +594,12 @@ public class SystemApp {
                     case 3:
                         System.out.println("\n=== CRIAR NOVA CARTEIRA ===");
                         System.out.print("ID da carteira: ");
-                        int novoId = readInt();
+                        int novoId = readPositiveInt();
 
                         System.out.print("ID do usuário proprietário: ");
-                        int userId = readInt();
+                        int userId = readPositiveInt();
 
-                        System.out.print("Nome da carteira: ");
-                        String nome = scanner.nextLine();
+                        String nome = readStringNotEmpty("Nome da carteira");
 
                         Wallet novaWallet = new Wallet(novoId, userId, nome);
                         walletDAO.insert(novaWallet);
@@ -596,7 +607,7 @@ public class SystemApp {
 
                     case 4:
                         System.out.print("Digite o ID da carteira a atualizar: ");
-                        int updateId = readInt();
+                        int updateId = readPositiveInt();
                         Wallet walletToUpdate = walletDAO.findById(updateId);
 
                         if (walletToUpdate != null) {
@@ -607,6 +618,11 @@ public class SystemApp {
                             String userIdStr = scanner.nextLine();
                             int newUserId = userIdStr.trim().isEmpty() ?
                                     walletToUpdate.getUserId() : Integer.parseInt(userIdStr);
+                            
+                            if (newUserId < 0) {
+                                System.out.println("❌ ID inválido. Mantendo anterior.");
+                                newUserId = walletToUpdate.getUserId();
+                            }
 
                             Wallet updated = new Wallet(updateId, newUserId, "Wallet " + updateId);
                             walletDAO.update(updated);
@@ -617,7 +633,7 @@ public class SystemApp {
 
                     case 5:
                         System.out.print("Digite o ID da carteira a deletar: ");
-                        int deleteId = readInt();
+                        int deleteId = readPositiveInt();
 
                         System.out.print("Digite 'SIM' para confirmar: ");
                         String confirmacao = scanner.nextLine();
@@ -651,11 +667,11 @@ public class SystemApp {
             System.out.println("\n" + "─".repeat(80));
             System.out.println("CRUD - PREÇOS DE MERCADO");
             System.out.println("─".repeat(80));
-            System.out.println("1. Listar todos os preços (Listar)");
-            System.out.println("2. Buscar preço por símbolo (Buscar)");
-            System.out.println("3. Criar novo preço (Inclusão)");
-            System.out.println("4. Atualizar preço (Alteração)");
-            System.out.println("5. Deletar preço (Exclusão)");
+            System.out.println("1. Listar todos os preços");
+            System.out.println("2. Buscar preço por símbolo");
+            System.out.println("3. Criar novo preço");
+            System.out.println("4. Atualizar preço");
+            System.out.println("5. Deletar preço");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
 
@@ -672,7 +688,7 @@ public class SystemApp {
 
                     case 2:
                         System.out.print("Digite o símbolo (ex: BTC): ");
-                        String symbol = scanner.nextLine().toUpperCase();
+                        String symbol = scanner.nextLine().toUpperCase().trim();
                         Double price = marketDAO.getPrice(symbol);
                         if (price != null) {
                             System.out.printf("💰 %s: $%,.2f%n", symbol, price);
@@ -681,29 +697,25 @@ public class SystemApp {
                         }
                         break;
 
-                    case 3: // <-- LÓGICA DE INCLUSÃO
+                    case 3:
                         System.out.println("\n=== CRIAR NOVO PREÇO ===");
-                        System.out.print("Símbolo: ");
-                        String newSymbol = scanner.nextLine().toUpperCase();
+                        String newSymbol = readStringNotEmpty("Símbolo").toUpperCase();
 
-                        // Verifica se já existe
                         if (marketDAO.getPrice(newSymbol) != null) {
                             System.out.println("❌ Erro: Símbolo já existe. Use a Opção 4 para atualizar.");
                             break;
                         }
 
                         System.out.print("Preço: $");
-                        double newPrice = readDouble();
+                        double newPrice = readPositiveDouble();
 
                         marketDAO.save(newSymbol, newPrice);
                         break;
 
-                    case 4: // <-- LÓGICA DE ALTERAÇÃO
+                    case 4:
                         System.out.println("\n=== ATUALIZAR PREÇO ===");
-                        System.out.print("Símbolo: ");
-                        String updateSymbol = scanner.nextLine().toUpperCase();
+                        String updateSymbol = readStringNotEmpty("Símbolo").toUpperCase();
 
-                        // Verifica se existe antes de atualizar
                         Double currentPrice = marketDAO.getPrice(updateSymbol);
                         if (currentPrice == null) {
                             System.out.println("❌ Erro: Símbolo não encontrado. Use a Opção 3 para criar.");
@@ -712,14 +724,14 @@ public class SystemApp {
 
                         System.out.printf("Preço atual de %s: $%,.2f%n", updateSymbol, currentPrice);
                         System.out.print("Novo preço: $");
-                        double updatePrice = readDouble();
+                        double updatePrice = readPositiveDouble();
 
                         marketDAO.save(updateSymbol, updatePrice);
                         break;
 
-                    case 5: // <-- MUDOU DE 4 PARA 5
+                    case 5:
                         System.out.print("Digite o símbolo a deletar: ");
-                        String deleteSymbol = scanner.nextLine().toUpperCase();
+                        String deleteSymbol = scanner.nextLine().toUpperCase().trim();
 
                         System.out.print("Digite 'SIM' para confirmar: ");
                         String confirmacao = scanner.nextLine();
@@ -767,7 +779,7 @@ public class SystemApp {
                 switch (opcao) {
                     case 1:
                         System.out.print("Digite o ID do usuário: ");
-                        int userId = readInt();
+                        int userId = readPositiveInt();
                         List<Transaction> transactions = transactionDAO.findByUserId(userId);
                         System.out.println("\n📝 Total: " + transactions.size() + " transação(ões)");
                         transactions.forEach(Transaction::showTransaction);
@@ -775,7 +787,7 @@ public class SystemApp {
 
                     case 2:
                         System.out.print("Digite o ID da transação: ");
-                        int findId = readInt();
+                        int findId = readPositiveInt();
 
                         Transaction tx = transactionDAO.findById(findId);
                         if (tx != null) {
@@ -788,10 +800,10 @@ public class SystemApp {
                     case 3:
                         System.out.println("\n=== CRIAR NOVA TRANSAÇÃO ===");
                         System.out.print("ID do usuário: ");
-                        int newUserId = readInt();
+                        int newUserId = readPositiveInt();
 
                         System.out.print("ID do ativo cripto: ");
-                        int assetId = readInt();
+                        int assetId = readPositiveInt();
 
                         CryptoAsset asset = cryptoAssetDAO.findById(assetId);
                         if (asset == null) {
@@ -800,10 +812,14 @@ public class SystemApp {
                         }
 
                         System.out.print("Quantidade: ");
-                        double amount = readDouble();
+                        double amount = readPositiveDouble();
+                        if (amount <= 0) {
+                            System.out.println("❌ A quantidade deve ser maior que zero!");
+                            break;
+                        }
 
                         System.out.print("Tipo (BUY/SELL): ");
-                        String type = scanner.nextLine().toUpperCase();
+                        String type = scanner.nextLine().toUpperCase().trim();
 
                         if (!type.equals("BUY") && !type.equals("SELL")) {
                             System.out.println("❌ Tipo inválido! Use BUY ou SELL.");
@@ -816,7 +832,7 @@ public class SystemApp {
 
                     case 4:
                         System.out.print("Digite o ID da transação a atualizar: ");
-                        int updateId = readInt();
+                        int updateId = readPositiveInt();
 
                         Transaction txToUpdate = transactionDAO.findById(updateId);
 
@@ -832,16 +848,21 @@ public class SystemApp {
                         String amountStr = scanner.nextLine();
                         double newAmount = amountStr.trim().isEmpty() ?
                                 txToUpdate.getAmount() : Double.parseDouble(amountStr);
+                        
+                        if (newAmount <= 0) {
+                             System.out.println("❌ Quantidade deve ser positiva. Mantendo valor anterior.");
+                             newAmount = txToUpdate.getAmount();
+                        }
 
                         System.out.print("Novo tipo (BUY/SELL) (Enter para manter): ");
-                        String newType = scanner.nextLine().toUpperCase();
-                        if (newType.trim().isEmpty()) {
+                        String newType = scanner.nextLine().toUpperCase().trim();
+                        if (newType.isEmpty()) {
                             newType = txToUpdate.getType();
                         }
 
                         if (!newType.equals("BUY") && !newType.equals("SELL")) {
-                            System.out.println("❌ Tipo inválido! Use BUY ou SELL.");
-                            break;
+                            System.out.println("❌ Tipo inválido! Mantendo valor anterior.");
+                            newType = txToUpdate.getType();
                         }
 
                         txToUpdate.setAmount(newAmount);
@@ -850,11 +871,10 @@ public class SystemApp {
 
                         System.out.println("✅ Transação atualizada!");
                         break;
-                    // ================================
 
                     case 5:
                         System.out.print("Digite o ID da transação a deletar: ");
-                        int deleteId = readInt();
+                        int deleteId = readPositiveInt();
 
                         System.out.print("Digite 'SIM' para confirmar: ");
                         String confirmacao = scanner.nextLine();
@@ -902,7 +922,7 @@ public class SystemApp {
                 switch (opcao) {
                     case 1:
                         System.out.print("Digite o ID da empresa: ");
-                        int companyId = readInt();
+                        int companyId = readPositiveInt();
                         List<Integer> userIds = userCompanyRelationDAO.findUsersByCompanyId(companyId);
                         System.out.println("\n👥 Total: " + userIds.size() + " usuário(s)");
                         System.out.println("IDs: " + userIds);
@@ -911,9 +931,9 @@ public class SystemApp {
                     case 2:
                         System.out.println("\n=== BUSCAR RELACIONAMENTO ===");
                         System.out.print("ID do usuário: ");
-                        int findUserId = readInt();
+                        int findUserId = readPositiveInt();
                         System.out.print("ID da empresa: ");
-                        int findCompanyId = readInt();
+                        int findCompanyId = readPositiveInt();
 
                         Map<String, Object> rel = userCompanyRelationDAO.findByKeys(findUserId, findCompanyId);
 
@@ -929,13 +949,13 @@ public class SystemApp {
                     case 3:
                         System.out.println("\n=== CRIAR RELACIONAMENTO ===");
                         System.out.print("ID do usuário: ");
-                        int userId = readInt();
+                        int userId = readPositiveInt();
 
                         System.out.print("ID da empresa: ");
-                        int newCompanyId = readInt();
+                        int newCompanyId = readPositiveInt();
 
                         System.out.print("Valor investido: $");
-                        double amount = readDouble();
+                        double amount = readPositiveDouble();
 
                         userCompanyRelationDAO.insert(userId, newCompanyId, amount, LocalDate.now());
                         break;
@@ -943,13 +963,13 @@ public class SystemApp {
                     case 4:
                         System.out.println("\n=== ATUALIZAR VALOR INVESTIDO ===");
                         System.out.print("ID do usuário: ");
-                        int updateUserId = readInt();
+                        int updateUserId = readPositiveInt();
 
                         System.out.print("ID da empresa: ");
-                        int updateCompanyId = readInt();
+                        int updateCompanyId = readPositiveInt();
 
                         System.out.print("Novo valor investido: $");
-                        double newAmount = readDouble();
+                        double newAmount = readPositiveDouble();
 
                         userCompanyRelationDAO.updateInvestedAmount(updateUserId, updateCompanyId, newAmount);
                         break;
@@ -957,10 +977,10 @@ public class SystemApp {
                     case 5:
                         System.out.println("\n=== DELETAR RELACIONAMENTO ===");
                         System.out.print("ID do usuário: ");
-                        int delUserId = readInt();
+                        int delUserId = readPositiveInt();
 
                         System.out.print("ID da empresa: ");
-                        int delCompanyId = readInt();
+                        int delCompanyId = readPositiveInt();
 
                         System.out.print("Digite 'SIM' para confirmar: ");
                         String confirmacao = scanner.nextLine();
@@ -996,9 +1016,9 @@ public class SystemApp {
             System.out.println("─".repeat(80));
             System.out.println("1. Listar ativos de uma empresa");
             System.out.println("2. Buscar alocação específica");
-            System.out.println("3. Adicionar ativo para empresa (Inclusão)");
-            System.out.println("4. Atualizar quantidade de ativo (Alteração)");
-            System.out.println("5. Remover ativo de empresa (Exclusão)");
+            System.out.println("3. Adicionar ativo para empresa");
+            System.out.println("4. Atualizar quantidade de ativo");
+            System.out.println("5. Remover ativo de empresa");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
 
@@ -1008,7 +1028,7 @@ public class SystemApp {
                 switch (opcao) {
                     case 1:
                         System.out.print("Digite o ID da empresa: ");
-                        int companyId = readInt();
+                        int companyId = readPositiveInt();
                         List<CryptoAsset> assets = companyCryptoAssetDAO.getAssetsByCompanyId(companyId);
                         System.out.println("\n💎 Total: " + assets.size() + " ativo(s)");
                         for (CryptoAsset asset : assets) {
@@ -1020,9 +1040,9 @@ public class SystemApp {
                     case 2:
                         System.out.println("\n=== BUSCAR ALOCAÇÃO ===");
                         System.out.print("ID da empresa: ");
-                        int findCompanyId = readInt();
+                        int findCompanyId = readPositiveInt();
                         System.out.print("ID do ativo cripto: ");
-                        int findAssetId = readInt();
+                        int findAssetId = readPositiveInt();
 
                         CryptoAsset asset = companyCryptoAssetDAO.findByKeys(findCompanyId, findAssetId);
 
@@ -1036,40 +1056,40 @@ public class SystemApp {
                         break;
 
                     case 3:
-                        System.out.println("\n=== ADICIONAR ATIVO (INCLUSÃO) ===");
+                        System.out.println("\n=== ADICIONAR ATIVO ===");
                         System.out.print("ID da empresa: ");
-                        int newCompanyId = readInt();
+                        int newCompanyId = readPositiveInt();
 
                         System.out.print("ID do ativo cripto: ");
-                        int assetId = readInt();
+                        int assetId = readPositiveInt();
 
                         System.out.print("Quantidade a adicionar: ");
-                        double quantity = readDouble();
+                        double quantity = readPositiveDouble();
 
                         companyCryptoAssetDAO.addOrUpdateAssetForCompany(newCompanyId, assetId, quantity);
                         break;
 
                     case 4:
-                        System.out.println("\n=== ATUALIZAR QUANTIDADE (ALTERAÇÃO) ===");
+                        System.out.println("\n=== ATUALIZAR QUANTIDADE ===");
                         System.out.print("ID da empresa: ");
-                        int updateCompanyId = readInt();
+                        int updateCompanyId = readPositiveInt();
 
                         System.out.print("ID do ativo cripto: ");
-                        int updateAssetId = readInt();
+                        int updateAssetId = readPositiveInt();
 
                         System.out.print("Nova Quantidade (define o valor total): ");
-                        double newQuantity = readDouble();
+                        double newQuantity = readPositiveDouble();
 
                         companyCryptoAssetDAO.updateAssetQuantity(updateCompanyId, updateAssetId, newQuantity);
                         break;
 
                     case 5:
-                        System.out.println("\n=== REMOVER ATIVO (EXCLUSÃO) ===");
+                        System.out.println("\n=== REMOVER ATIVO ===");
                         System.out.print("ID da empresa: ");
-                        int delCompanyId = readInt();
+                        int delCompanyId = readPositiveInt();
 
                         System.out.print("ID do ativo cripto: ");
-                        int delAssetId = readInt();
+                        int delAssetId = readPositiveInt();
 
                         System.out.print("Digite 'SIM' para confirmar: ");
                         String confirmacao = scanner.nextLine();
@@ -1105,9 +1125,9 @@ public class SystemApp {
             System.out.println("─".repeat(80));
             System.out.println("1. Listar ativos de uma carteira");
             System.out.println("2. Buscar ativo específico na carteira");
-            System.out.println("3. Adicionar ativo à carteira (Inclusão)");
-            System.out.println("4. Atualizar quantidade de ativo (Alteração)");
-            System.out.println("5. Remover ativo da carteira (Exclusão)");
+            System.out.println("3. Adicionar ativo à carteira");
+            System.out.println("4. Atualizar quantidade de ativo");
+            System.out.println("5. Remover ativo da carteira");
             System.out.println("0. Voltar");
             System.out.print("Escolha: ");
 
@@ -1117,7 +1137,7 @@ public class SystemApp {
                 switch (opcao) {
                     case 1:
                         System.out.print("Digite o ID da carteira: ");
-                        int walletId = readInt();
+                        int walletId = readPositiveInt();
                         List<CryptoAsset> assets = walletCryptoAssetDAO.findCryptoAssetsByWallet(walletId);
                         System.out.println("\n💼 Total: " + assets.size() + " ativo(s)");
                         for (CryptoAsset asset : assets) {
@@ -1130,9 +1150,9 @@ public class SystemApp {
                     case 2:
                         System.out.println("\n=== BUSCAR ATIVO NA CARTEIRA ===");
                         System.out.print("ID da carteira: ");
-                        int findWalletId = readInt();
+                        int findWalletId = readPositiveInt();
                         System.out.print("ID do ativo cripto: ");
-                        int findAssetId = readInt();
+                        int findAssetId = readPositiveInt();
 
                         CryptoAsset asset = walletCryptoAssetDAO.findByKeys(findWalletId, findAssetId);
 
@@ -1146,40 +1166,40 @@ public class SystemApp {
                         break;
 
                     case 3:
-                        System.out.println("\n=== ADICIONAR ATIVO (INCLUSÃO) ===");
+                        System.out.println("\n=== ADICIONAR ATIVO ===");
                         System.out.print("ID da carteira: ");
-                        int newWalletId = readInt();
+                        int newWalletId = readPositiveInt();
 
                         System.out.print("ID do ativo cripto: ");
-                        int assetId = readInt();
+                        int assetId = readPositiveInt();
 
                         System.out.print("Quantidade: ");
-                        double quantity = readDouble();
+                        double quantity = readPositiveDouble();
 
                         walletCryptoAssetDAO.addCryptoAssetToWallet(newWalletId, assetId, quantity);
                         break;
 
                     case 4:
-                        System.out.println("\n=== ATUALIZAR QUANTIDADE (ALTERAÇÃO) ===");
+                        System.out.println("\n=== ATUALIZAR QUANTIDADE ===");
                         System.out.print("ID da carteira: ");
-                        int updateWalletId = readInt();
+                        int updateWalletId = readPositiveInt();
 
                         System.out.print("ID do ativo cripto: ");
-                        int updateAssetId = readInt();
+                        int updateAssetId = readPositiveInt();
 
                         System.out.print("Nova quantidade: ");
-                        double newQuantity = readDouble();
+                        double newQuantity = readPositiveDouble();
 
                         walletCryptoAssetDAO.updateCryptoAssetQuantity(updateWalletId, updateAssetId, newQuantity);
                         break;
 
                     case 5:
-                        System.out.println("\n=== REMOVER ATIVO (EXCLUSÃO) ===");
+                        System.out.println("\n=== REMOVER ATIVO ===");
                         System.out.print("ID da carteira: ");
-                        int delWalletId = readInt();
+                        int delWalletId = readPositiveInt();
 
                         System.out.print("ID do ativo cripto: ");
-                        int delAssetId = readInt();
+                        int delAssetId = readPositiveInt();
 
                         System.out.print("Digite 'SIM' para confirmar: ");
                         String confirmacao = scanner.nextLine();
@@ -1205,27 +1225,7 @@ public class SystemApp {
     }
 
     // ============================================================================
-    // MÉTODOS DE CACHE
-    // ============================================================================
-
-    private static void loadDataToMemory() {
-        try {
-            System.out.println("⏳ Carregando dados do banco de dados para a memória...");
-            userCache = User.getAllUsers();
-            companyCache = companyDAO.findAll();
-            cryptoAssetCache = cryptoAssetDAO.findAll();
-
-            System.out.printf("✅ Dados carregados: %d Usuários, %d Empresas, %d Ativos Cripto.%n", userCache.size(), companyCache.size(), cryptoAssetCache.size());
-        } catch (Exception e) {
-            System.err.println("❌ Erro crítico ao carregar dados para a memória: " + e.getMessage());
-            e.printStackTrace();
-            System.out.println("A aplicação não pode continuar sem os dados iniciais. Encerrando.");
-            System.exit(1);
-        }
-    }
-
-    // ============================================================================
-    // MÉTODOS AUXILIARES
+    // MÉTODOS AUXILIARES E DE VALIDAÇÃO
     // ============================================================================
     
     private static int getNextUserIdFromCache() {
@@ -1251,6 +1251,24 @@ public class SystemApp {
         }
     }
 
+    // Novo método: Lê inteiro positivo e valida
+    private static int readPositiveInt() {
+        while (true) {
+            try {
+                int valor = scanner.nextInt();
+                scanner.nextLine(); // Limpar buffer
+                if (valor <= 0) {
+                    System.out.print("❌ O valor deve ser positivo! Tente novamente: ");
+                    continue;
+                }
+                return valor;
+            } catch (InputMismatchException e) {
+                scanner.nextLine(); // Limpar buffer
+                System.out.print("❌ Valor inválido! Digite um número inteiro: ");
+            }
+        }
+    }
+
     private static double readDouble() {
         try {
             double valor = scanner.nextDouble();
@@ -1259,6 +1277,57 @@ public class SystemApp {
         } catch (InputMismatchException e) {
             scanner.nextLine(); // Limpar buffer
             throw new IllegalArgumentException("Valor inválido! Digite um número.");
+        }
+    }
+
+    // Novo método: Lê double positivo e valida
+    private static double readPositiveDouble() {
+        while (true) {
+            try {
+                double valor = scanner.nextDouble();
+                scanner.nextLine(); // Limpar buffer
+                if (valor < 0) {
+                    System.out.print("❌ O valor não pode ser negativo! Tente novamente: ");
+                    continue;
+                }
+                return valor;
+            } catch (InputMismatchException e) {
+                scanner.nextLine(); // Limpar buffer
+                System.out.print("❌ Valor inválido! Digite um número: ");
+            }
+        }
+    }
+
+    // Novo método: Lê string e garante que não é vazia
+    private static String readStringNotEmpty(String fieldName) {
+        while (true) {
+            System.out.print(fieldName + ": ");
+            String input = scanner.nextLine().trim();
+            if (!input.isEmpty()) {
+                return input;
+            }
+            System.out.println("❌ O campo '" + fieldName + "' não pode ser vazio!");
+        }
+    }
+
+    // Novo método: Valida formato de email
+    private static boolean isValidEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email).matches();
+    }
+
+    private static void loadDataToMemory() {
+        try {
+            System.out.println("⏳ Carregando dados do banco de dados para a memória...");
+            userCache = User.getAllUsers();
+            companyCache = companyDAO.findAll();
+            cryptoAssetCache = cryptoAssetDAO.findAll();
+
+            System.out.printf("✅ Dados carregados: %d Usuários, %d Empresas, %d Ativos Cripto.%n", userCache.size(), companyCache.size(), cryptoAssetCache.size());
+        } catch (Exception e) {
+            System.err.println("❌ Erro crítico ao carregar dados para a memória: " + e.getMessage());
+            e.printStackTrace();
+            System.out.println("A aplicação não pode continuar sem os dados iniciais. Encerrando.");
+            System.exit(1);
         }
     }
 
@@ -1286,11 +1355,10 @@ public class SystemApp {
     }
 
     // ============================================================================
-    // TESTES AUTOMATIZADOS (continuação do código anterior...)
+    // TESTES AUTOMATIZADOS
     // ============================================================================
 
     private static void runAutomatedTests(boolean verbose) {
-        // Reset contadores
         totalTests = 0;
         passedTests = 0;
         failedTests = 0;
@@ -1342,14 +1410,11 @@ public class SystemApp {
         }
     }
 
-    // Implementações dos métodos de teste com parâmetro verbose
-    // (Similar aos métodos anteriores, mas verificando if(verbose) antes de System.out.println)
-
     private static void testOracleConnection(boolean verbose) {
         if (verbose) System.out.println("\n━━━ TESTE: Conexão Oracle ━━━");
         totalTests++;
         try {
-            Connection conn = OracleConnection.getConnection();
+            java.sql.Connection conn = OracleConnection.getConnection();
             if (conn != null && !conn.isClosed()) {
                 if (verbose) System.out.println("✅ Conexão estabelecida");
                 passedTests++;
@@ -1496,7 +1561,7 @@ public class SystemApp {
                     failedTests++;
                 }
             } else {
-                if (verbose) System.out.println("⚠️ Teste pulado (sem ativo)");
+                if (verbose) System.out.println("⚠️ Teste pulado (sem ativo id=1)");
                 totalTests--;
             }
         } catch (Exception e) {
@@ -1551,7 +1616,6 @@ public class SystemApp {
         if (verbose) System.out.println("\n━━━ TESTE: WalletCryptoAsset DAO ━━━");
         totalTests++;
         try {
-            // Criar carteira temporária
             Wallet tempWallet = new Wallet(99997, 1, "Temp Test");
             walletDAO.insert(tempWallet);
 
@@ -1566,7 +1630,6 @@ public class SystemApp {
                 failedTests++;
             }
 
-            // Limpar
             walletCryptoAssetDAO.removeCryptoAssetFromWallet(99997, 1);
             walletDAO.delete(99997);
 
@@ -1596,23 +1659,6 @@ public class SystemApp {
                 System.out.println("\n⚠️  Atenção! Vários testes falharam.");
             }
         }
-
         System.out.println("═".repeat(80));
-    }
-
-    private static void startTest(String name) {
-        totalTests++;
-    }
-
-    private static void passTest() {
-        passedTests++;
-    }
-
-    private static void failTest() {
-        failedTests++;
-    }
-
-    private static void endTest() {
-        // Método vazio mantido para compatibilidade
     }
 }
